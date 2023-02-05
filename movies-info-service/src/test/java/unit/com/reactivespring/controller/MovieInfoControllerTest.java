@@ -95,8 +95,13 @@ public class MovieInfoControllerTest {
                 .bodyValue(movie)
                 .exchange()
                 .expectStatus()
-                .is5xxServerError()
-                .expectBody(String.class);
+                .isBadRequest()
+                .expectBody(String.class)
+                .consumeWith(stringEntity -> {
+                    String responseBody = stringEntity.getResponseBody();
+                    System.out.println("responseBody: " + responseBody);
+                    assert responseBody != null;
+                });
     }
 
     @Test
