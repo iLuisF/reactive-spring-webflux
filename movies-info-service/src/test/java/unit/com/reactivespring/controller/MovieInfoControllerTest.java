@@ -1,53 +1,77 @@
 package com.reactivespring.controller;
 
 import com.reactivespring.domain.MovieInfo;
-import com.reactivespring.repository.MovieInfoRepository;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
+import com.reactivespring.service.MovieInfoService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWebTestClient;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.ActiveProfiles;
+import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.web.reactive.server.WebTestClient;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Objects;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.mockito.ArgumentMatchers.isA;
+import static org.mockito.Mockito.when;
 
-@ActiveProfiles("test")
 @AutoConfigureWebTestClient
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-class MoviesInfoControllerTest {
+@WebFluxTest(controllers = MoviesInfoController.class)
+public class MovieInfoControllerTest {
 
-    @Autowired
-    private MovieInfoRepository repository;
     @Autowired
     private WebTestClient client;
+    @MockBean
+    private MovieInfoService service;
     static String MOVIES_INFO_URL = "/v1/movie-info";
 
-    @BeforeEach
-    void setUp() {
+    @Test
+    void allMovies() {
         List<MovieInfo> movies = List.of(new MovieInfo(null, "Batman Begins",
                         2005, List.of("Christian Bale", "Michael Cane"), LocalDate.parse("2005-06-15")),
                 new MovieInfo(null, "The Dark Knight",
                         2008, List.of("Christian Bale", "HeathLedger"), LocalDate.parse("2008-07-18")),
                 new MovieInfo("abc", "Dark Knight Rises",
                         2012, List.of("Christian Bale", "Tom Hardy"), LocalDate.parse("2012-07-20")));
-        this.repository.saveAll(movies).blockLast();
-    }
+        when(service.getAllMovies()).thenReturn(Flux.fromIterable(movies));
+        client
+                .get()
+                .uri(MOVIES_INFO_URL)
+                .exchange()
+                .expectStatus()
+                .is2xxSuccessful()
+                .expectBodyList(MovieInfo.class)
+                .hasSize(3);
 
-    @AfterEach
-    void tearDown() {
-        this.repository.deleteAll().block();
     }
 
     @Test
-    void addMovie() {
-        MovieInfo movie = new MovieInfo(null, "Superman",
-                2005, List.of("henry"), LocalDate.parse("2005-06-15"));
+    void getMovieInfoById() {
+        String id = "abc";
+        when(this.service.getMovieById(isA(String.class))).thenReturn(Mono.just(
+                new MovieInfo("abc", "Dark Knight Rises",
+                        2012, List.of("Christian Bale", "Tom Hardy"), LocalDate.parse("2012-07-20"))));
+        client
+                .get()
+                .uri(MOVIES_INFO_URL + "/{id}", id)
+                .exchange()
+                .expectStatus()
+                .is2xxSuccessful()
+                .expectBody()
+                .jsonPath("$.name").isEqualTo("Dark Knight Rises");
+    }
+
+    @Test
+    void addNewMovieInfo() {
+        MovieInfo movie = new MovieInfo(null, "Batman Begins",
+                2005, List.of("Christian Bale", "Michael Cane"), LocalDate.parse("2005-06-15"));
+        when(this.service.addMovie(isA(MovieInfo.class))).thenReturn(Mono.just(
+                new MovieInfo("mockId", "Batman Begins",
+                        2005, List.of("Christian Bale", "Michael Cane"), LocalDate.parse("2005-06-15"))));
         client
                 .post()
                 .uri(MOVIES_INFO_URL)
@@ -58,61 +82,33 @@ class MoviesInfoControllerTest {
                 .expectBody(MovieInfo.class)
                 .consumeWith(movieEntity -> {
                     MovieInfo savedMovie = movieEntity.getResponseBody();
-                    assert savedMovie != null;
-                    assert savedMovie.getMovieInfoId() != null;
+                    assert Objects.requireNonNull(savedMovie).getMovieInfoId() != null;
                 });
     }
 
     @Test
-    void getAllMovies() {
+    void addNewMovieValidation() {
+        MovieInfo movie = new MovieInfo(null, "", -2005, List.of(""), LocalDate.parse("2005-06-15"));
         client
-                .get()
+                .post()
                 .uri(MOVIES_INFO_URL)
+                .bodyValue(movie)
                 .exchange()
                 .expectStatus()
-                .is2xxSuccessful()
-                .expectBodyList(MovieInfo.class)
-                .hasSize(3);
-    }
-
-    @Test
-    void getMovieById() {
-        String id = "abc";
-        client
-                .get()
-                .uri(MOVIES_INFO_URL.concat("/{id}"), id)
-                .exchange()
-                .expectStatus()
-                .is2xxSuccessful()
-                .expectBody(MovieInfo.class)
-                .consumeWith(movieEntity -> {
-                    MovieInfo movie = movieEntity.getResponseBody();
-                    assertNotNull(movie);
-                });
-    }
-
-    @Test
-    void getMovieByIdWithJson() {
-        String id = "abc";
-        client
-                .get()
-                .uri(MOVIES_INFO_URL.concat("/{id}"), id)
-                .exchange()
-                .expectStatus()
-                .is2xxSuccessful()
-                .expectBody()
-                .jsonPath("$.name").isEqualTo("Dark Knight Rises");
+                .is5xxServerError()
+                .expectBody(String.class);
     }
 
     @Test
     void updateMovieInfo() {
         String id = "abc";
-        MovieInfo updatedMovieInfo = new MovieInfo("abc", "Dark Knight Rises 1",
+        MovieInfo updatedMovie = new MovieInfo("abc", "Dark Knight Rises 1",
                 2013, List.of("Christian Bale1", "Tom Hardy1"), LocalDate.parse("2012-07-20"));
+        when(this.service.update(isA(MovieInfo.class), isA(String.class))).thenReturn(Mono.just(updatedMovie));
         client
                 .put()
                 .uri(MOVIES_INFO_URL + "/{id}", id)
-                .bodyValue(updatedMovieInfo)
+                .bodyValue(updatedMovie)
                 .exchange()
                 .expectStatus()
                 .is2xxSuccessful()
@@ -127,6 +123,7 @@ class MoviesInfoControllerTest {
     @Test
     void deleteMovieInfoById() {
         String id = "abc";
+        when(this.service.delete(isA(String.class))).thenReturn(Mono.empty());
         client
                 .delete()
                 .uri(MOVIES_INFO_URL + "/{id}", id)
@@ -134,5 +131,4 @@ class MoviesInfoControllerTest {
                 .expectStatus()
                 .is2xxSuccessful();
     }
-
 }
