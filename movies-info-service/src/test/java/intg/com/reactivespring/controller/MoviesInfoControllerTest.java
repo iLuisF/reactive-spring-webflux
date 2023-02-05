@@ -124,4 +124,15 @@ class MoviesInfoControllerTest {
                 });
     }
 
+    @Test
+    void deleteMovieInfoById() {
+        String id = "abc";
+        client
+                .delete()
+                .uri(MOVIES_INFO_URL + "/{id}", id)
+                .exchange()
+                .expectStatus()
+                .is2xxSuccessful();
+    }
+
 }
