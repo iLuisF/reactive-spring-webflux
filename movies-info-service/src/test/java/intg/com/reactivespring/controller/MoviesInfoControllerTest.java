@@ -14,6 +14,7 @@ import org.springframework.test.web.reactive.server.WebTestClient;
 import java.time.LocalDate;
 import java.util.List;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 @ActiveProfiles("test")
@@ -102,4 +103,25 @@ class MoviesInfoControllerTest {
                 .expectBody()
                 .jsonPath("$.name").isEqualTo("Dark Knight Rises");
     }
+
+    @Test
+    void updateMovieInfo() {
+        String id = "abc";
+        MovieInfo updatedMovieInfo = new MovieInfo("abc", "Dark Knight Rises 1",
+                2013, List.of("Christian Bale1", "Tom Hardy1"), LocalDate.parse("2012-07-20"));
+        client
+                .put()
+                .uri(MOVIES_INFO_URL + "/{id}", id)
+                .bodyValue(updatedMovieInfo)
+                .exchange()
+                .expectStatus()
+                .is2xxSuccessful()
+                .expectBody(MovieInfo.class)
+                .consumeWith(movieEntity -> {
+                    MovieInfo movieInfo = movieEntity.getResponseBody();
+                    assert movieInfo != null;
+                    assertEquals("Dark Knight Rises 1", movieInfo.getName());
+                });
+    }
+
 }

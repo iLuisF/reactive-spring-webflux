@@ -29,10 +29,13 @@ public class MoviesInfoController {
 
     @PostMapping("/movie-info")
     @ResponseStatus(HttpStatus.CREATED)
-
     public Mono<MovieInfo> addMovie(@RequestBody MovieInfo movie) {
         System.out.println("addMovie");
         return this.movieInfoService.addMovie(movie).log();
     }
 
+    @PutMapping("/movie-info/{id}")
+    public Mono<MovieInfo> update(@RequestBody MovieInfo movie, @PathVariable String id) {
+        return this.movieInfoService.update(movie, id);
+    }
 }
