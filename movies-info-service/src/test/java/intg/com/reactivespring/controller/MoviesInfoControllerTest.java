@@ -14,6 +14,8 @@ import org.springframework.test.web.reactive.server.WebTestClient;
 import java.time.LocalDate;
 import java.util.List;
 
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+
 @ActiveProfiles("test")
 @AutoConfigureWebTestClient
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
@@ -72,4 +74,32 @@ class MoviesInfoControllerTest {
                 .hasSize(3);
     }
 
+    @Test
+    void getMovieById() {
+        String id = "abc";
+        client
+                .get()
+                .uri(MOVIES_INFO_URL.concat("/{id}"), id)
+                .exchange()
+                .expectStatus()
+                .is2xxSuccessful()
+                .expectBody(MovieInfo.class)
+                .consumeWith(movieEntity -> {
+                    MovieInfo movie = movieEntity.getResponseBody();
+                    assertNotNull(movie);
+                });
+    }
+
+    @Test
+    void getMovieByIdWithJson() {
+        String id = "abc";
+        client
+                .get()
+                .uri(MOVIES_INFO_URL.concat("/{id}"), id)
+                .exchange()
+                .expectStatus()
+                .is2xxSuccessful()
+                .expectBody()
+                .jsonPath("$.name").isEqualTo("Dark Knight Rises");
+    }
 }
