@@ -85,4 +85,12 @@ class MovieInfoRepositoryTest {
                 .expectNextCount(2)
                 .verifyComplete();
     }
+
+    @Test
+    void findByYear() {
+        Flux<MovieInfo> movieInfoFlux = this.repository.findByYear(2005);
+        StepVerifier.create(movieInfoFlux)
+                .expectNextCount(1)
+                .verifyComplete();
+    }
 }

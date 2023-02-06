@@ -9,6 +9,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import javax.validation.Valid;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/v1")
@@ -31,6 +32,16 @@ public class MoviesInfoController {
                 .map(ResponseEntity.ok()::body)
                 .switchIfEmpty(Mono.just(ResponseEntity.notFound().build()))
                 .log();
+    }
+
+    @GetMapping("/movie-info-by-id")
+    public Flux<MovieInfo> moviesByYear(@RequestParam(value = "year") Integer year){
+        return this.movieInfoService.moviesByYear(year);
+    }
+
+    @GetMapping("/movie-info-by-name")
+    public Mono<MovieInfo> moviesByName(@RequestParam(value = "name") String name){
+        return this.movieInfoService.moviesByName(name);
     }
 
     @PostMapping("/movie-info")
