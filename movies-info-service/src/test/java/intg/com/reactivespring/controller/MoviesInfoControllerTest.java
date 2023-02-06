@@ -92,6 +92,17 @@ class MoviesInfoControllerTest {
     }
 
     @Test
+    void getMovieByIdNotFound() {
+        String id = "def";
+        client
+                .get()
+                .uri(MOVIES_INFO_URL + "/{id}", id)
+                .exchange()
+                .expectStatus()
+                .isNotFound();
+    }
+
+    @Test
     void getMovieByIdWithJson() {
         String id = "abc";
         client
@@ -122,6 +133,20 @@ class MoviesInfoControllerTest {
                     assert movieInfo != null;
                     assertEquals("Dark Knight Rises 1", movieInfo.getName());
                 });
+    }
+
+    @Test
+    void updateMovieNotFound() {
+        String id = "def";
+        MovieInfo updatedMovie = new MovieInfo(null, "Dark Knight Rises 1",
+                2013, List.of("Christian Bale1", "Tom Hardy1"), LocalDate.parse("2012-07-20"));
+        client
+                .put()
+                .uri(MOVIES_INFO_URL + "/{id}", id)
+                .bodyValue(updatedMovie)
+                .exchange()
+                .expectStatus()
+                .isNotFound();
     }
 
     @Test

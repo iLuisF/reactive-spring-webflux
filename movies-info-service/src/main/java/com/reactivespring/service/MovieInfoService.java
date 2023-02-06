@@ -32,8 +32,9 @@ public class MovieInfoService {
                 .flatMap(updatedMovie -> {
                     updatedMovie.setCast(movie.getCast());
                     updatedMovie.setName(movie.getName());
+                    updatedMovie.setRelease_date(movie.getRelease_date());
                     updatedMovie.setYear(movie.getYear());
-                    return repository.save(updatedMovie);
+                return repository.save(updatedMovie);
                 });
     }
 
