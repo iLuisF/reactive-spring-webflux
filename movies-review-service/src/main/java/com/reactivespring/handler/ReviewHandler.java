@@ -9,6 +9,8 @@ import org.springframework.web.reactive.function.server.ServerResponse;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.util.Optional;
+
 @Component
 public class ReviewHandler {
 
@@ -25,8 +27,14 @@ public class ReviewHandler {
     }
 
     public Mono<ServerResponse> get(ServerRequest request) {
-        Flux<Review> reviews = repository.findAll();
-        return ServerResponse.ok().body(reviews, Review.class);
+        Optional<String> movieInfoId = request.queryParam("movieInfoId");
+        Flux<Review> flux;
+        if (movieInfoId.isPresent()) {
+            flux = repository.findReviewsByMovieInfoId(Long.valueOf(movieInfoId.get()));
+        } else {
+            flux = repository.findAll();
+        }
+        return buildReviewsResponse(flux);
     }
 
     public Mono<ServerResponse> update(ServerRequest request) {
@@ -48,5 +56,9 @@ public class ReviewHandler {
         Mono<Review> actual = repository.findById(id);
         return actual.flatMap(review -> repository.deleteById(id))
                 .then(ServerResponse.noContent().build());
+    }
+
+    private static Mono<ServerResponse> buildReviewsResponse(Flux<Review> flux) {
+        return ServerResponse.ok().body(flux, Review.class);
     }
 }
