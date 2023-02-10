@@ -46,4 +46,18 @@ public class ReviewsUnitTest {
                     assertNotNull(savedReview.getReviewId());
                 });
     }
+
+    @Test
+    void addReviewValidation() {
+        var review = new Review(null, null, "Awesome Movie", 9.0);
+        when(repository.save(isA(Review.class)))
+                .thenReturn(Mono.just(new Review("abc", 1L, "Awesome Movie", 9.0)));
+        client
+                .post()
+                .uri(REVIEWS_URL)
+                .bodyValue(review)
+                .exchange()
+                .expectStatus()
+                .isBadRequest();
+    }
 }
