@@ -25,7 +25,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
                 "restClient.reviewsUrl: http://localhost:8084/v1/reviews"
         }
 )
-public class MoviesControllerIntgTest {
+class MoviesControllerIntgTest {
 
     @Autowired
     private WebTestClient client;
@@ -69,5 +69,24 @@ public class MoviesControllerIntgTest {
                 .exchange()
                 .expectStatus()
                 .is4xxClientError();
+    }
+
+    @Test
+    void retrieveMovieByIdError5XX() {
+        String movieId = "abc";
+        stubFor(get(urlEqualTo("/v1/movie-info/" + movieId))
+                .willReturn(aResponse().withStatus(500)
+                        .withBody("MovieInfo Service Unavailable")));
+        stubFor(get(urlPathEqualTo("/v1/reviews"))
+                .willReturn(aResponse()
+                        .withHeader("Content-Type", "application/json")
+                        .withBodyFile("reviews.json")));
+        client
+                .get()
+                .uri("/v1/movies/{id}", movieId)
+                .exchange()
+                .expectStatus()
+                .is5xxServerError()
+                .expectBody(String.class);
     }
 }
