@@ -53,4 +53,21 @@ public class MoviesControllerIntgTest {
                     assertEquals("Batman Begins", movie.getMovieInfo().getName());
                 });
     }
+
+    @Test
+    void retrieveMovieByIdError404() {
+        String movieId = "abc";
+        stubFor(get(urlEqualTo("/v1/movie-info/" + movieId))
+                .willReturn(aResponse().withStatus(404)));
+        stubFor(get(urlPathEqualTo("/v1/reviews"))
+                .willReturn(aResponse()
+                        .withHeader("Content-Type", "application/json")
+                        .withBodyFile("reviews.json")));
+        client
+                .get()
+                .uri("/v1/movies/{id}", movieId)
+                .exchange()
+                .expectStatus()
+                .is4xxClientError();
+    }
 }
