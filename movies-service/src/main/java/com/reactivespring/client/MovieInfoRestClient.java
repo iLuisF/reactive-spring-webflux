@@ -7,7 +7,12 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
+import reactor.core.Exceptions;
 import reactor.core.publisher.Mono;
+import reactor.util.retry.Retry;
+import reactor.util.retry.RetryBackoffSpec;
+
+import java.time.Duration;
 
 @Component
 public class MovieInfoRestClient {
@@ -22,6 +27,9 @@ public class MovieInfoRestClient {
 
     public Mono<MovieInfo> movies(String id) {
         String url = this.movieInfoUrl.concat("/{id}");
+        RetryBackoffSpec retrySpec = Retry.fixedDelay(3, Duration.ofSeconds(1))
+                .filter(ex -> ex instanceof MoviesInfoServerException)
+                .onRetryExhaustedThrow((retryBackoffSpec, retrySignal) -> Exceptions.propagate(retrySignal.failure()));
         return client
                 .get()
                 .uri(url, id)
@@ -42,7 +50,7 @@ public class MovieInfoRestClient {
                                     "Server Exception in MovieInfoService " + responseMessage)));
                 })
                 .bodyToMono(MovieInfo.class)
-                .retry(3)
+                .retryWhen(retrySpec)
                 .log();
     }
 
