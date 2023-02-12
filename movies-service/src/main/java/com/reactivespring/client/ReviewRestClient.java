@@ -4,6 +4,7 @@ import com.reactivespring.domain.Review;
 import com.reactivespring.exception.ReviewsClientException;
 import com.reactivespring.exception.ReviewsServerException;
 
+import com.reactivespring.util.RetryUtil;
 import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.beans.factory.annotation.Value;
@@ -45,6 +46,8 @@ public class ReviewRestClient {
                 .onStatus(HttpStatus::is5xxServerError, clientResponse -> clientResponse.bodyToMono(String.class)
                         .flatMap(responseMessage -> Mono.error(
                                 new ReviewsServerException("Server Exception in ReviewService " + responseMessage))))
-                .bodyToFlux(Review.class);
+                .bodyToFlux(Review.class)
+                .retryWhen(RetryUtil.retrySpec())
+                .log();
     }
 }
