@@ -19,7 +19,8 @@ public class ReviewRouter {
                     builder.POST("", handler::add)
                             .GET("", handler::get)
                             .PUT("/{id}", handler::update)
-                            .DELETE("/{id}", handler::delete);
+                            .DELETE("/{id}", handler::delete)
+                            .GET("stream", handler::reviewsStream);
                 })
                 .GET("/v1/helloworld", (request -> ServerResponse.ok().bodyValue("Hello World")))
                 .build();
