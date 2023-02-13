@@ -9,8 +9,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWebTestClient;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.web.reactive.server.FluxExchangeResult;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import org.springframework.web.util.UriComponentsBuilder;
+import reactor.core.publisher.Flux;
+import reactor.test.StepVerifier;
 
 import java.net.URI;
 import java.time.LocalDate;
@@ -75,6 +78,39 @@ class MoviesInfoControllerTest {
                 .is2xxSuccessful()
                 .expectBodyList(MovieInfo.class)
                 .hasSize(3);
+    }
+
+    @Test
+    void getAllMoviesStream() {
+        MovieInfo movie = new MovieInfo(null, "Superman",
+                2005, List.of("henry"), LocalDate.parse("2005-06-15"));
+        client
+                .post()
+                .uri(MOVIES_INFO_URL)
+                .bodyValue(movie)
+                .exchange()
+                .expectStatus()
+                .isCreated()
+                .expectBody(MovieInfo.class)
+                .consumeWith(movieEntity -> {
+                    MovieInfo savedMovie = movieEntity.getResponseBody();
+                    assert savedMovie != null;
+                    assert savedMovie.getMovieInfoId() != null;
+                });
+        Flux<MovieInfo> movieInfoFlux= client
+                .get()
+                .uri(MOVIES_INFO_URL.concat("/stream"))
+                .exchange()
+                .expectStatus()
+                .is2xxSuccessful()
+                .returnResult(MovieInfo.class)
+                .getResponseBody();
+        StepVerifier.create(movieInfoFlux)
+                .assertNext(info -> {
+                    assert info.getMovieInfoId() != null;
+                })
+                .thenCancel()
+                .verify();
     }
 
     @Test
